@@ -20,7 +20,8 @@ class AuthRepository {
   }) async {
     try {
       final credential =
-      await _firebaseAuth.createUserWithEmailAndPassword(
+      await _firebaseAuth
+          .createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -28,8 +29,12 @@ class AuthRepository {
       final user = credential.user;
 
       if (user == null) {
-        throw Exception('Registration failed.');
+        throw Exception(
+          'Registration failed.',
+        );
       }
+
+      await user.sendEmailVerification();
 
       return AppUser.fromFirebaseUser(user);
     } on FirebaseAuthException catch (e) {
@@ -38,6 +43,31 @@ class AuthRepository {
       );
     }
   }
+
+  // Future<AppUser> register({
+  //   required String email,
+  //   required String password,
+  // }) async {
+  //   try {
+  //     final credential =
+  //     await _firebaseAuth.createUserWithEmailAndPassword(
+  //       email: email,
+  //       password: password,
+  //     );
+  //
+  //     final user = credential.user;
+  //
+  //     if (user == null) {
+  //       throw Exception('Registration failed.');
+  //     }
+  //
+  //     return AppUser.fromFirebaseUser(user);
+  //   } on FirebaseAuthException catch (e) {
+  //     throw Exception(
+  //       FirebaseErrorHandler.authMessage(e),
+  //     );
+  //   }
+  // }
 
   // =========================
   // Login
@@ -106,15 +136,43 @@ class AuthRepository {
         throw Exception('No authenticated user found.');
       }
 
-      if (!user.emailVerified) {
-        await user.sendEmailVerification();
+      if (user.emailVerified) {
+        return;
       }
+
+      await user.sendEmailVerification();
+
+      print('✅ Verification email request sent to: ${user.email}');
     } on FirebaseAuthException catch (e) {
+      print('❌ Firebase verification error: ${e.code}');
+      print('❌ Message: ${e.message}');
+
       throw Exception(
         FirebaseErrorHandler.authMessage(e),
       );
+    } catch (e) {
+      print('❌ Verification error: $e');
+      rethrow;
     }
   }
+
+  // Future<void> sendEmailVerification() async {
+  //   try {
+  //     final user = _firebaseAuth.currentUser;
+  //
+  //     if (user == null) {
+  //       throw Exception('No authenticated user found.');
+  //     }
+  //
+  //     if (!user.emailVerified) {
+  //       await user.sendEmailVerification();
+  //     }
+  //   } on FirebaseAuthException catch (e) {
+  //     throw Exception(
+  //       FirebaseErrorHandler.authMessage(e),
+  //     );
+  //   }
+  // }
 
   // =========================
   // Reload User
